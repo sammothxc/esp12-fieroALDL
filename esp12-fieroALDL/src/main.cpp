@@ -3,7 +3,8 @@
 #include <ESPAsyncWebServer.h>
 #include <ElegantOTA.h>
 
-const char* hostname = "esp12f-fieroALDL";
+const char* ssid = "esp12f-fieroALDL";
+const char* password = "pontiacfiero";
 const unsigned long TIMEOUT_MS = (60 * 1000) * 1; // 1 minute
 unsigned long lastActiveTime = 0;
 bool apActive = false;
@@ -15,7 +16,7 @@ void startAP() {
   Serial.println("Starting AP...");
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(AP_IP, AP_IP, AP_subnet);
-  WiFi.softAP(hostname);
+  WiFi.softAP(ssid, password);
   apActive = true;
   lastActiveTime = millis();
   Serial.print("AP started. Timeout: ");
