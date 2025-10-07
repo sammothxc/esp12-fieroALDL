@@ -100,7 +100,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 void setup() {
   pinMode(LED_PIN, OUTPUT);
   pinMode(ALDL_DATA_PIN, INPUT_PULLUP);
-  digitalWrite(LED_PIN, 1);
+  digitalWrite(LED_PIN, 0);
   Serial.begin(9600);
   Serial.println("\nBooting esp12f-fieroALDL...");
   WiFi.mode(WIFI_AP);
@@ -110,7 +110,7 @@ void setup() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){request->send_P(200, "text/html", index_html);});
   server.begin();
   Serial.println("AP and OTA ready.");
-  digitalWrite(LED_PIN, 0);
+  digitalWrite(LED_PIN, 1);
 }
 
 void loop() {
