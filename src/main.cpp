@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <SPI.h>
 #include <ESP8266WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include <ElegantOTA.h>
@@ -92,6 +91,12 @@ void readALDLdata(void) {
   return;
 }
 
+const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html>
+</html>
+)rawliteral";
+
 void setup() {
   pinMode(LED_PIN, OUTPUT);
   pinMode(ALDL_DATA_PIN, INPUT_PULLUP);
@@ -102,6 +107,8 @@ void setup() {
   WiFi.softAPConfig(AP_IP, AP_IP, AP_subnet);
   WiFi.softAP(ssid, password);
   ElegantOTA.begin(&server);
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){request->send_P(200, "text/html", index_html);});
+  server.begin();
   Serial.println("AP and OTA ready.");
   digitalWrite(LED_PIN, 0);
 }
