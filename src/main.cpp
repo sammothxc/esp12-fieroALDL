@@ -10,32 +10,11 @@
 
 const char* ssid = "esp12f-fieroALDL";
 const char* password = "pontiacfiero";
-const unsigned long TIMEOUT_MS = (60 * 1000) * 1; // 1 minute
-unsigned long lastActiveTime = 0;
-bool apActive = false;
 IPAddress AP_IP(10,1,1,1);
 IPAddress AP_subnet(255,255,255,0);
 AsyncWebServer server(80);
 
-void startAP() {
-  Serial.println("Starting AP...");
-  WiFi.mode(WIFI_AP);
-  WiFi.softAPConfig(AP_IP, AP_IP, AP_subnet);
-  WiFi.softAP(ssid, password);
-  apActive = true;
-  lastActiveTime = millis();
-  Serial.print("AP started. Timeout: ");
-  Serial.println((TIMEOUT_MS / 1000) / 60);
-}
-
-void stopAP() {
-  Serial.println("No clients, disabling AP.");
-  WiFi.softAPdisconnect(true);
-  WiFi.mode(WIFI_OFF);
-  apActive = false;
-}
-
-void readALDLData(void) {
+void readALDLdata(void) {
   unsigned long ms = 0;
   unsigned long start = 0;
   unsigned long pulse = 0;
@@ -69,26 +48,18 @@ void readALDLData(void) {
             case STATE_WAIT_SYNC:
               if(ALDL_DATA == 0) {
                 sync++;
-                if(sync == 9) {
-                  state = STATE_SYNC;
-                }
+                if(sync == 9) {state = STATE_SYNC;}
               }
             break;
 
             case STATE_SYNC:
-              if(ALDL_DATA == 1) {
-                bit++;
-                state = STATE_DATA;
-              }
+              if(ALDL_DATA == 1) {bit++; state = STATE_DATA;}
             break;
 
             case STATE_DATA:
               bit++;
-              if(bit == 225) { // data end
-                bit = 0;
-                sync = 0;
-                state = STATE_WAIT_SYNC;
-              }
+              if(bit == 225) {bit = 0; sync = 0; state = STATE_WAIT_SYNC;} // end of frame
+              else {state = STATE_SYNC;}
             break;
           }
 
@@ -103,14 +74,8 @@ void readALDLData(void) {
             break;
 
             default:
-              if(ALDL_DATA == 1)
-              {
-                Serial.print("0");
-              }
-              else
-              {
-                Serial.print("1");
-              }
+              if(ALDL_DATA == 1) {Serial.print("0"); digitalWrite(LED_PIN, 0);}
+              else {Serial.print("1"); digitalWrite(LED_PIN, 1);}
             break;
           }
           while(digitalRead(ALDL_DATA_PIN) == 0) {if(Serial.available() > 0) {EXIT = 1; break;}}
@@ -129,26 +94,15 @@ void setup() {
   pinMode(ALDL_DATA_PIN, INPUT_PULLUP);
   digitalWrite(LED_PIN, 1);
   Serial.begin(9600);
-  Serial.println("\nBooting esp12f-fieroALDL");
-  startAP();
+  Serial.println("\nBooting esp12f-fieroALDL...");
+  WiFi.mode(WIFI_AP);
+  WiFi.softAPConfig(AP_IP, AP_IP, AP_subnet);
+  WiFi.softAP(ssid, password);
   ElegantOTA.begin(&server);
-  Serial.println("AP + OTA ready");
-  digitalWrite(LED, 0);
+  Serial.println("AP and OTA ready.");
+  digitalWrite(LED_PIN, 0);
 }
 
 void loop() {
-  // Check number of connected stations
-  int numClients = WiFi.softAPgetStationNum();
-
-  if (numClients > 0) {
-    // Clients connected → reset timer
-    lastActiveTime = millis();
-  } else {
-    // No clients → check if timeout expired
-    if (apActive && millis() - lastActiveTime > TIMEOUT_MS) {
-      stopAP();
-    }
-  }
-
-  delay(1000);
+  readALDLdata()
 }
