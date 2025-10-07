@@ -1,7 +1,12 @@
 #include <Arduino.h>
+#include <SPI.h>
 #include <ESP8266WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include <ElegantOTA.h>
+
+#define LED_PIN 2
+#define ALDL_DATA_PIN 3
+#define ALDL_DATA_DURATION 2875
 
 const char* ssid = "esp12f-fieroALDL";
 const char* password = "pontiacfiero";
@@ -30,12 +35,105 @@ void stopAP() {
   apActive = false;
 }
 
+void readALDLData(void) {
+  unsigned long ms = 0;
+  unsigned long start = 0;
+  unsigned long pulse = 0;
+  int ALDL_DATA = 0;
+  int bit = 0;
+  int sync = 0;
+  int state = STATE_WAIT_SYNC;
+  int EXIT = 0;
+
+  while(1) {
+    // wait for possible partial pulse to finish
+    while(digitalRead(ALDL_DATA_PIN) == 1) {if(Serial.available() > 0) {EXIT = 1; break;}}
+    if(EXIT == 1) break;
+    while(digitalRead(ALDL_DATA_PIN) == 0) {if(Serial.available() > 0) {EXIT = 1; break;}}
+    if(EXIT == 1) break;
+
+    // start timing the first pulse
+    while(1) {
+      while(digitalRead(ALDL_DATA_PIN) == 1) {if(Serial.available() > 0) {EXIT = 1; break;}}
+      if(EXIT == 1) break;
+      start = micros();
+
+      while(1) {
+        ms = micros();
+        pulse = ms - start;
+  
+        if(pulse > ALDL_DATA_DURATION) {
+          ALDL_DATA = digitalRead(ALDL_DATA_PIN);
+
+          switch(state) {
+            case STATE_WAIT_SYNC:
+              if(ALDL_DATA == 0) {
+                sync++;
+                if(sync == 9) {
+                  state = STATE_SYNC;
+                }
+              }
+            break;
+
+            case STATE_SYNC:
+              if(ALDL_DATA == 1) {
+                bit++;
+                state = STATE_DATA;
+              }
+            break;
+
+            case STATE_DATA:
+              bit++;
+              if(bit == 225) { // data end
+                bit = 0;
+                sync = 0;
+                state = STATE_WAIT_SYNC;
+              }
+            break;
+          }
+
+          switch(bit)
+          {
+            case 146: // not implemented in hardware
+              Serial.print("0");
+            break;
+
+            case 147: // not implemented in hardware
+              Serial.print("0");
+            break;
+
+            default:
+              if(ALDL_DATA == 1)
+              {
+                Serial.print("0");
+              }
+              else
+              {
+                Serial.print("1");
+              }
+            break;
+          }
+          while(digitalRead(ALDL_DATA_PIN) == 0) {if(Serial.available() > 0) {EXIT = 1; break;}}
+          break;
+        }
+      }
+      if(EXIT == 1) break;
+    }
+    if(EXIT == 1) break;
+  }
+  return;
+}
+
 void setup() {
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(ALDL_DATA_PIN, INPUT_PULLUP);
+  digitalWrite(LED_PIN, 1);
   Serial.begin(9600);
   Serial.println("\nBooting esp12f-fieroALDL");
   startAP();
   ElegantOTA.begin(&server);
   Serial.println("AP + OTA ready");
+  digitalWrite(LED, 0);
 }
 
 void loop() {
