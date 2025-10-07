@@ -7,6 +7,9 @@
 #define LED_PIN 2
 #define ALDL_DATA_PIN 3
 #define ALDL_DATA_DURATION 2875
+#define STATE_WAIT_SYNC 0
+#define STATE_SYNC 1
+#define STATE_DATA 2
 
 const char* ssid = "esp12f-fieroALDL";
 const char* password = "pontiacfiero";
@@ -104,5 +107,5 @@ void setup() {
 }
 
 void loop() {
-  readALDLdata()
+  readALDLdata();
 }
